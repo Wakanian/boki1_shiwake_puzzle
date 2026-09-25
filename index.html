@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f3f8f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="仕訳パズル">
+<title>簿記1級仕分けパズル</title>
+<style>
+:root{
+  /* 基調色：千草色 #97C5B0 */
+  --base:#97C5B0; --base-ink:#15372b; --base-deep:#7fb39c;
+  --bg:#f3f8f5; --card:#ffffff; --line:#dbe8e1; --ink:#1d2b26; --sub:#475a52; --muted:#86998f;
+  --pri:#3b7560; --pri-ink:#15372b; --pri-soft:#e6f2ec; --pri-line:#b9d9ca;
+  --ok:#1f8a5c; --ok-soft:#e3f5ec; --ng:#c0463a; --ng-soft:#fbecea;
+  --warn:#b45309; --warn-soft:#fff6e6;
+  --shadow:0 1px 2px rgba(15,23,42,.05);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --base:#97C5B0; --base-ink:#10271f; --base-deep:#86b8a1;
+    --bg:#0e1512; --card:#16201c; --line:#26352f; --ink:#e4efe9; --sub:#b3c4bb; --muted:#7c8f86;
+    --pri:#97C5B0; --pri-ink:#10271f; --pri-soft:#1a2b24; --pri-line:#35584a;
+    --ok:#5fd39c; --ok-soft:#10261b; --ng:#f08577; --ng-soft:#2b1715;
+    --warn:#fbbf24; --warn-soft:#2a2112;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif;
+  -webkit-text-size-adjust:100%;}
+body{overscroll-behavior-y:none}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button:disabled{cursor:default}
+
+/* ===== 共通ヘッダー ===== */
+.topbar{position:sticky;top:0;z-index:10;background:var(--base);color:var(--base-ink);
+  padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;}
+.topbar h1{margin:0;font-size:19px;letter-spacing:.04em;font-weight:800}
+.topbar p{margin:4px 0 0;font-size:12px;opacity:.8;font-weight:600}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 28px)}
+
+
+/* ===== トップ（ヒーロー） ===== */
+.hero{text-align:center;padding:calc(env(safe-area-inset-top) + 28px) 0 22px}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--pri);font-weight:800;font-size:14px;letter-spacing:.28em}
+.brand svg{width:26px;height:26px}
+.hero h1{margin:12px 0 0;font-size:26px;font-weight:900;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.ver{font-size:12px;font-weight:800;background:var(--base);color:var(--base-ink);padding:3px 10px;border-radius:999px;letter-spacing:0}
+.hero p{margin:8px 0 0;color:var(--muted);font-size:14px;font-weight:600;letter-spacing:.04em}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:14px;padding:4px;gap:4px;margin-bottom:16px}
+.seg button{min-height:46px;border-radius:11px;font-weight:800;font-size:14.5px;color:var(--muted);transition:background .15s,color .15s}
+.seg button.on{background:var(--card);color:var(--pri);box-shadow:0 1px 3px rgba(20,50,40,.12)}
+.banner{width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:18px 16px 18px 18px;border-radius:18px;
+  background:linear-gradient(135deg,#2f6652,#3f8068 60%,#5a9a82);color:#fff;box-shadow:0 6px 18px rgba(47,102,82,.25);transition:transform .08s}
+.banner:active:not(:disabled){transform:scale(.98)}
+.banner.ng{background:linear-gradient(135deg,#9c3a30,#c0463a);box-shadow:0 6px 18px rgba(192,70,58,.22)}
+.banner:disabled{opacity:.45;box-shadow:none}
+.banner-ic{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;flex:none}
+.banner-tx{flex:1;min-width:0}
+.banner-tx b{display:block;font-size:19px;font-weight:900;letter-spacing:.02em}
+.banner-tx small{display:block;font-size:12.5px;opacity:.85;margin-top:4px}
+.banner-go{opacity:.9;flex:none}
+.divider{display:flex;align-items:center;gap:12px;margin:26px 0 16px;color:var(--muted);font-size:13px;font-weight:600}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.cat.rv .cat-ic{background:var(--ng-soft);color:var(--ng)}
+.cat.live.rv .cat-badge{color:var(--ng);background:var(--ng-soft);padding:2px 8px;border-radius:999px;font-weight:800}
+.empty-note{text-align:center;color:var(--muted);font-size:13px;line-height:1.8;padding:18px 8px 8px}
+
+/* ===== 復習エリア ===== */
+.review{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:22px;position:relative;overflow:hidden}
+.review.has{border-color:#eec3bd;background:linear-gradient(180deg,var(--ng-soft),var(--card) 70%)}
+.review-top{display:flex;align-items:center;gap:10px}
+.review-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--ng-soft);color:var(--ng);flex:none}
+.review h2{margin:0;font-size:15px;font-weight:800}
+.review small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.review-count{margin-left:auto;font-size:26px;font-weight:800;color:var(--ng);line-height:1}
+.review-count span{font-size:12px;font-weight:700;margin-left:2px}
+.review-list{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.review-list li{font-size:11.5px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--sub)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:12px;font-weight:800;font-size:15.5px;transition:transform .08s, opacity .15s}
+.btn:active:not(:disabled){transform:scale(.98)}
+.btn-pri{background:var(--base);color:var(--base-ink);box-shadow:inset 0 -2px 0 var(--base-deep)}
+.btn-ng{background:var(--ng);color:#fff}
+.btn-ghost{background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
+.btn:disabled{opacity:.35}
+.review .btn{margin-top:14px}
+
+/* ===== カテゴリ ===== */
+.sec-title{font-size:12.5px;color:var(--muted);font-weight:700;margin:6px 2px 10px;letter-spacing:.03em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.cat{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px 12px 14px;text-align:left;min-height:88px;
+  display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);transition:transform .08s,border-color .15s}
+.cat:active{transform:scale(.97);border-color:var(--pri-line)}
+.cat-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cat-ic{width:30px;height:30px;border-radius:50%;background:var(--pri-soft);color:var(--pri);display:grid;place-items:center}
+.cat-badge{font-size:11px;color:var(--muted);font-weight:600}
+.cat.live .cat-badge{color:var(--pri);background:var(--pri-soft);padding:2px 8px;border-radius:999px;font-weight:800}
+.cat-name{font-size:14px;font-weight:800;line-height:1.35}
+.cat.empty .cat-name{color:var(--sub)}
+.cat-done{font-size:10.5px;color:var(--ok);font-weight:800;margin-left:6px}
+
+/* ===== クイズ画面 ===== */
+.screen{height:100vh;height:100dvh;display:flex;flex-direction:column}
+.qbar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 8px 8px;background:var(--card);border-bottom:1px solid var(--line);flex:none}
+.back{display:flex;align-items:center;gap:4px;min-height:44px;min-width:44px;padding:0 12px 0 6px;border-radius:10px;font-weight:700;font-size:14px;color:var(--pri)}
+.back:active{background:var(--pri-soft)}
+.qbar-title{flex:1;min-width:0;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qbar-prog{font-size:12px;color:var(--muted);font-weight:700;padding-right:8px}
+.progress{height:3px;background:var(--line);flex:none}
+.progress i{display:block;height:100%;background:var(--base);transition:width .3s}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.qwrap{max-width:560px;margin:0 auto;padding:14px 14px 20px}
+.tag{display:inline-block;font-size:11px;font-weight:800;color:var(--pri);background:var(--pri-soft);padding:3px 9px;border-radius:999px;margin-bottom:8px}
+.tag.rv{color:var(--ng);background:var(--ng-soft)}
+.qtitle{font-size:16px;font-weight:800;margin:0 0 10px}
+.stem{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:14px;line-height:1.75;color:var(--ink)}
+.stem b{color:var(--pri)}
+.stem .data{margin:8px 0 0;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:13px;line-height:1.7}
+.hint-btn{margin-top:8px;font-size:12.5px;font-weight:700;color:var(--warn);padding:8px 4px;min-height:40px}
+.hint{background:var(--warn-soft);color:var(--warn);font-size:13px;border-radius:10px;padding:10px 12px;line-height:1.6;font-weight:600}
+
+/* 仕訳 */
+.jr{margin-top:14px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
+.jr-head{display:grid;grid-template-columns:1fr 1fr;font-size:12px;font-weight:800;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--line)}
+.jr-head span{padding:7px 10px}
+.jr-head span+span{border-left:1px solid var(--line)}
+.jr-row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px dashed var(--line)}
+.jr-row:last-child{border-bottom:none}
+.jr-cell{padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.jr-cell+.jr-cell{border-left:1px solid var(--line)}
+.fx{font-size:13.5px;font-weight:700;padding:8px 4px;line-height:1.35;word-break:break-all}
+.fx.amt{text-align:right;font-variant-numeric:tabular-nums}
+.slot{min-height:44px;border-radius:9px;border:2px dashed var(--pri-line);background:var(--pri-soft);color:var(--pri);
+  font-size:13.5px;font-weight:800;padding:6px 8px;text-align:left;line-height:1.3;word-break:break-all;transition:all .12s;position:relative}
+.slot.amt{text-align:right;font-variant-numeric:tabular-nums}
+.slot.empty{color:var(--pri);opacity:.9}
+.slot.empty::before{content:"［ ? ］";font-weight:800;letter-spacing:.05em}
+.slot.amt.empty::before{content:"［ ? ］"}
+.slot.active{border-style:solid;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-line);animation:pulse 1.4s infinite}
+.slot.filled{border-style:solid;background:var(--card);color:var(--ink);border-color:var(--pri-line)}
+.slot.ok{border-style:solid;border-color:var(--ok);background:var(--ok-soft);color:var(--ok);animation:none;box-shadow:none}
+.slot.ng{border-style:solid;border-color:var(--ng);background:var(--ng-soft);color:var(--ng);animation:none;box-shadow:none;text-decoration:line-through}
+.fix{display:block;font-size:12px;font-weight:800;color:var(--ok);margin-top:2px;padding:0 2px}
+.fix::before{content:"→ ";}
+.jr-cell .fixwrap{display:flex;flex-direction:column}
+.jr-cell .fixwrap.amt .fix{text-align:right}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px var(--pri-line)}50%{box-shadow:0 0 0 6px transparent}}
+
+/* 結果・解説 */
+.verdict{margin-top:14px;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict.ng{background:var(--ng-soft);color:var(--ng)}
+.verdict small{display:block;font-weight:600;font-size:12px;opacity:.9;margin-top:2px}
+.explain{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.explain h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:6px}
+.explain h3::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--pri)}
+.explain ul{margin:0;padding-left:1.1em;font-size:13.5px;line-height:1.8}
+.explain li{margin-bottom:4px}
+.explain b{color:var(--pri)}
+.explain .calc{font-variant-numeric:tabular-nums;background:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.8;margin:8px 0}
+.point{margin-top:10px;background:var(--pri-soft);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7}
+.point strong{color:var(--pri)}
+
+/* 下部パーツ */
+.dock{flex:none;background:var(--card);border-top:1px solid var(--line);padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);box-shadow:0 -4px 16px rgba(15,23,42,.06)}
+.dock-inner{max-width:560px;margin:0 auto}
+.dock-label{font-size:11px;color:var(--muted);font-weight:700;margin:0 2px 7px;display:flex;justify-content:space-between}
+.parts{max-height:36vh;overflow-y:auto;padding:2px}
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.pgrid.n{grid-template-columns:repeat(3,1fr);margin-top:7px}
+.part{min-height:48px;border-radius:11px;border:1.5px solid var(--line);background:var(--bg);font-size:13.5px;font-weight:800;padding:6px 8px;line-height:1.3;transition:transform .07s,opacity .15s}
+.part.num{font-variant-numeric:tabular-nums;font-size:15px}
+.part:active:not(:disabled){transform:scale(.95);background:var(--pri-soft);border-color:var(--pri)}
+.part.used{opacity:.22}
+.actions{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:10px}
+
+/* モーダル・演出 */
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:grid;place-items:center;z-index:50;padding:24px;animation:fade .15s}
+.modal{background:var(--card);border-radius:18px;padding:22px 20px 18px;width:100%;max-width:340px;text-align:center}
+.modal h3{margin:6px 0 6px;font-size:17px}
+.modal p{margin:0 0 16px;color:var(--sub);font-size:13.5px;line-height:1.7}
+.modal .ic{width:48px;height:48px;border-radius:50%;margin:0 auto;display:grid;place-items:center;background:var(--pri-soft);color:var(--pri)}
+.stamp{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:60}
+.stamp div{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;font-size:84px;font-weight:900;
+  animation:stamp .9s ease forwards;background:var(--card);box-shadow:0 10px 40px rgba(0,0,0,.18)}
+.stamp.ok div{color:var(--ok);border:6px solid var(--ok)}
+.stamp.ng div{color:var(--ng);border:6px solid var(--ng)}
+@keyframes stamp{0%{transform:scale(1.8);opacity:0}25%{transform:scale(1);opacity:1}75%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* 終了画面 */
+.done{text-align:center;padding:40px 8px}
+.done .big{font-size:48px;font-weight:900;color:var(--pri);margin:8px 0}
+.done p{color:var(--sub);font-size:14px}
+.done .btn{margin-top:10px}
+.foot{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+   簿記1級仕分けパズル
+   - 単一HTML / 外部リソースなし（オフライン動作）
+   - 問題の追加は QUESTIONS 配列に追記するだけ
+   ========================================================= */
+
+/* ---------- カテゴリ定義 ---------- */
+const SECTIONS = [
+  { label: '商業簿記・会計学', cats: [
+    '連結会計','資産除去債務','有価証券','減損会計','リース会計','退職給付会計','税効果会計',
+    '外貨換算会計','社債','純資産','収益認識','本支店会計','返品権付き販売',
+    'カスタマーロイヤルティプログラム','有価証券の保有目的の変更','その他の包括利益',
+    '事業分離と連結会計','通貨オプション','売価還元法','分配可能額の計算','金銭債権譲渡'
+  ]},
+  { label: '工業簿記・原価計算', cats: [
+    '標準原価計算','個別原価計算','直接原価計算','意思決定会計','予算編成','実際工程別総合原価計算',
+    '配合差異と歩留差異','最適セールスミックス','連産品の計算','原価差異の会計処理',
+    '原価企画','設備投資意思決定','品質原価','CVP分析'
+  ]}
+];
+
+/* ---------- 問題データ ----------
+   dr / cr : 借方・貸方の行（同じ index が同じ行に並ぶ）
+   acc / amt : 文字列なら固定表示、{b:'正解'} なら穴埋め[ ? ]
+   distractors : ひっかけパーツ
+-------------------------------------------------- */
+const QUESTIONS = [
+  {
+    id: 'aro-01',
+    cat: '資産除去債務',
+    title: '決算時：減価償却と利息費用の計上',
+    stem: `X1年4月1日に設備（取得原価 <b>50,000</b>千円、耐用年数<b>5年</b>、残存価額ゼロ、定額法）を取得し使用開始した。
+      使用後の除去義務があり、取得時に資産除去債務 <b>10,000</b>千円（割引率<b>3%</b>で割引済み）を計上している。`,
+    data: '決算日：X2年3月31日（単位：千円）<br>X2年3月31日の決算整理仕訳を完成させよ。',
+    dr: [
+      { acc: '減価償却費',       amt: { b: '12,000' } },
+      { acc: { b: '利息費用' },   amt: { b: '300' } }
+    ],
+    cr: [
+      { acc: '減価償却累計額',   amt: { b: '12,000' } },
+      { acc: { b: '資産除去債務' }, amt: { b: '300' } }
+    ],
+    distractors: ['10,000', '1,500', '支払利息', '未払費用'],
+    hint: '除去費用は資産の帳簿価額に「加算」済み。時の経過による債務の増加は、どの勘定を増やす？',
+    explain: `
+      <ul>
+        <li>資産除去債務の計上額 10,000 は<b>設備の帳簿価額に加算</b>されている。減価償却の基礎は 50,000＋10,000＝60,000。</li>
+        <li>利息費用は<b>期首の資産除去債務 × 割引率</b>。時の経過で債務が増えるので、貸方は<b>資産除去債務</b>（負債の増加）。</li>
+      </ul>
+      <div class="calc">減価償却費：(50,000＋10,000) ÷ 5年 ＝ <b>12,000</b><br>利息費用　：10,000 × 3% ＝ <b>300</b></div>
+      <ul>
+        <li>「支払利息」「未払費用」はひっかけ。現金の支払いも経過利息の未払いもない。</li>
+        <li>「1,500」は 50,000×3%。利息費用の基礎は取得原価ではなく<b>資産除去債務</b>。</li>
+      </ul>
+      <div class="point"><strong>1級ポイント：</strong>利息費用はP/L上、関連する有形固定資産の<b>減価償却費と同じ区分</b>（通常は販管費）に計上する。営業外費用ではない。</div>`
+  },
+  {
+    id: 'cons-01',
+    cat: '連結会計',
+    title: '連結2年目の開始仕訳',
+    stem: `P社はX1年3月31日にS社の発行済株式の<b>80%</b>を <b>20,000</b>千円で取得し、支配を獲得した。
+      同日のS社純資産は資本金 <b>15,000</b>、利益剰余金 <b>5,000</b>。
+      X1年度のS社当期純利益は <b>2,000</b>（配当なし）。のれんは<b>10年</b>で定額償却する。`,
+    data: '単位：千円／資産・負債の時価評価差額なし<br>X2年度（連結2年目）の開始仕訳を完成させよ。',
+    dr: [
+      { acc: '資本金当期首残高',       amt: '15,000' },
+      { acc: '利益剰余金当期首残高',   amt: { b: '5,800' } },
+      { acc: { b: 'のれん' },          amt: { b: '3,600' } }
+    ],
+    cr: [
+      { acc: 'S社株式',                         amt: '20,000' },
+      { acc: { b: '非支配株主持分当期首残高' }, amt: { b: '4,400' } }
+    ],
+    distractors: ['5,000', '5,400', '4,000', 'のれん償却額', '非支配株主に帰属する当期純利益'],
+    hint: '前期の損益項目（のれん償却額・非支配株主に帰属する当期純利益）は、開始仕訳では「利益剰余金当期首残高」に化ける。',
+    explain: `
+      <ul>
+        <li>前期の連結修正は個別F/Sに残らないため、当期首に<b>まとめて再現</b>するのが開始仕訳。</li>
+        <li>純資産項目は「<b>〜当期首残高</b>」、前期の損益項目はすべて<b>利益剰余金当期首残高</b>に置き換える。</li>
+      </ul>
+      <div class="calc">
+        取得時：のれん＝20,000－(20,000×80%)＝4,000／非支配＝20,000×20%＝4,000<br>
+        前期：のれん償却 4,000÷10年＝400／非支配への按分 2,000×20%＝400<br>
+        利益剰余金当期首残高＝5,000＋400＋400＝<b>5,800</b><br>
+        のれん＝4,000－400＝<b>3,600</b><br>
+        非支配株主持分当期首残高＝4,000＋400＝<b>4,400</b><br>
+        検算：借 15,000＋5,800＋3,600＝24,400 ＝ 貸 20,000＋4,400</div>
+      <div class="point"><strong>1級ポイント：</strong>「のれん償却額」「非支配株主に帰属する当期純利益」は当期の損益勘定なので開始仕訳には出てこない。「5,400」は片方の修正を落とした典型ミス。</div>`
+  },
+  {
+    id: 'std-01',
+    cat: '標準原価計算',
+    title: '直接材料費の差異分析と借貸判定',
+    stem: `当月の製品生産量は <b>500個</b>（月初・月末仕掛品なし）。
+      直接材料の原価標準は <b>@100円 × 2kg/個</b>。
+      当月の実際消費量は <b>1,050kg</b>、実際単価は <b>@98円</b>（実際消費額 102,900円）。`,
+    data: 'シングル・プラン採用。価格差異・数量差異は材料消費時に把握する。<br>材料消費時の仕訳を完成させよ。',
+    dr: [
+      { acc: { b: '仕掛品' },       amt: { b: '100,000' } },
+      { acc: { b: '材料数量差異' }, amt: { b: '5,000' } }
+    ],
+    cr: [
+      { acc: '材料',                amt: '102,900' },
+      { acc: { b: '材料価格差異' }, amt: { b: '2,100' } }
+    ],
+    distractors: ['製品', '105,000', '2,000', '4,900'],
+    hint: '不利差異は借方、有利差異は貸方。価格差異は「実際数量」、数量差異は「標準単価」で掛ける。',
+    explain: `
+      <ul>
+        <li>シングル・プランでは仕掛品を<b>標準原価</b>で借記する：500個×2kg×@100＝100,000。</li>
+        <li>差異は「費用のかたまり」とイメージ。<b>不利差異＝借方</b>、<b>有利差異＝貸方</b>。</li>
+      </ul>
+      <div class="calc">
+        価格差異＝(@100－@98)×実際1,050kg＝＋2,100（有利）→ <b>貸方</b><br>
+        数量差異＝(標準1,000kg－実際1,050kg)×@100＝－5,000（不利）→ <b>借方</b><br>
+        検算：借 100,000＋5,000＝105,000 ＝ 貸 102,900＋2,100</div>
+      <ul>
+        <li>「2,000」は単価差×<b>標準</b>数量のミス。価格差異は必ず<b>実際数量</b>で計算（ボックス図の外側）。</li>
+        <li>「105,000」は標準単価×実際数量。これは仕掛品ではなく、価格差異を除いた後の中間値。</li>
+      </ul>
+      <div class="point"><strong>1級ポイント：</strong>パーシャル・プランなら仕掛品は実際消費量ベースで借記され、差異は仕掛品勘定の中で算出される。プランによって「どこで差異が出るか」を問うのが本試験の定番。</div>`
+  }
+];
+
+/* ---------- 保存（LocalStorage、失敗時はメモリ） ---------- */
+const KEY_REVIEW = 'boki1puzzle.review.v1';
+const KEY_SOLVED = 'boki1puzzle.solved.v1';
+const mem = {};
+const store = {
+  get(k, d) {
+    try { const v = localStorage.getItem(k); if (v != null) return JSON.parse(v); } catch (e) {}
+    return k in mem ? mem[k] : d;
+  },
+  set(k, v) {
+    mem[k] = v;
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+  }
+};
+const qById = id => QUESTIONS.find(q => q.id === id);
+const getReview = () => store.get(KEY_REVIEW, []).filter(qById);
+const setReview = arr => store.set(KEY_REVIEW, [...new Set(arr)]);
+const getSolved = () => store.get(KEY_SOLVED, {});
+
+/* ---------- ユーティリティ ---------- */
+const $app = document.getElementById('app');
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const isNum = s => /^[\d,.\-−]+$/.test(s);
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+const ICON = {
+  book: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5C4.5 4 8 4 12 6v14c-4-2-7.5-2-10-.5z"/><path d="M22 5.5C19.5 4 16 4 12 6v14c4-2 7.5-2 10-.5z"/></svg>',
+  retry: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>',
+  back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  puzzle: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7h3.5a2 2 0 1 1 4 0H15v3.5a2 2 0 1 1 0 4V18h-3.5a2 2 0 1 0-4 0H4v-3.5a2 2 0 1 0 0-4z"/></svg>',
+  shuffle: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>',
+  chev: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  clock: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+};
+
+/* =========================================================
+   メニュー画面
+   ========================================================= */
+let menuMode = 'all'; // 'all' | 'review'
+function renderMenu() {
+  S = null;
+  const review = getReview();
+  const solved = getSolved();
+  const total = QUESTIONS.length;
+  const rv = menuMode === 'review';
+
+  const hero = `
+    <header class="hero">
+      <div class="brand">${ICON.puzzle}<span>SHIWAKE PUZZLE</span></div>
+      <h1>簿記1級 仕分けパズル<span class="ver">ver.1</span></h1>
+      <p>メモ・電卓なしで仕訳の構造を組み立てる</p>
+    </header>
+    <div class="seg" role="tablist">
+      <button class="${rv ? '' : 'on'}" data-act="mode" data-mode="all">すべての問題</button>
+      <button class="${rv ? 'on' : ''}" data-act="mode" data-mode="review">要復習のみ（${review.length}）</button>
+    </div>
+    ${rv ? `
+      <button class="banner ng" data-act="review" ${review.length ? '' : 'disabled'}>
+        <span class="banner-ic">${ICON.retry}</span>
+        <span class="banner-tx"><b>要復習モード</b><small>${review.length ? `間違えた${review.length}問を連続で解き直す` : '間違えた問題はありません'}</small></span>
+        <span class="banner-go">${ICON.chev}</span>
+      </button>` : `
+      <button class="banner" data-act="random">
+        <span class="banner-ic">${ICON.shuffle}</span>
+        <span class="banner-tx"><b>全範囲からランダム</b><small>全${total}問からランダム出題</small></span>
+        <span class="banner-go">${ICON.chev}</span>
+      </button>`}
+    <div class="divider"><span>${rv ? '論点ごとに復習' : '論点を選んで演習'}</span></div>`;
+
+  const secHtml = SECTIONS.map(sec => {
+    const cats = rv ? sec.cats.filter(c => review.some(id => qById(id).cat === c)) : sec.cats;
+    if (!cats.length) return '';
+    return `
+    <div class="sec-title">${sec.label}</div>
+    <div class="grid">
+      ${cats.map(c => {
+        const qs = QUESTIONS.filter(q => q.cat === c);
+        const n = rv ? review.filter(id => qById(id).cat === c).length : qs.length;
+        const done = !rv && qs.length && qs.every(q => solved[q.id]);
+        return `<button class="cat ${n ? 'live' : 'empty'} ${rv ? 'rv' : ''}" data-act="${rv ? 'review-cat' : 'cat'}" data-cat="${c}">
+          <div class="cat-top"><span class="cat-ic">${rv ? ICON.retry : ICON.book}</span><span class="cat-badge">${n}問</span></div>
+          <div class="cat-name">${c}${done ? '<span class="cat-done">✓</span>' : ''}</div>
+        </button>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+
+  const empty = rv && !review.length
+    ? `<div class="empty-note">不正解だった問題がここに自動で登録されます。<br>正解すると自動で消えます。</div>` : '';
+
+  $app.innerHTML = `
+    <main class="wrap">${hero}${secHtml}${empty}
+      <p class="foot">記録はこの端末のブラウザに保存されます（オフライン動作）</p>
+    </main>`;
+}
+
+/* =========================================================
+   クイズ
+   ========================================================= */
+let S = null; // セッション状態
+
+function startSession(mode, ids, label) {
+  S = { mode, ids, label, idx: 0, score: 0 };
+  loadQuestion();
+}
+
+function loadQuestion() {
+  const q = qById(S.ids[S.idx]);
+  const blanks = [], bmap = {};
+  const rows = Math.max(q.dr.length, q.cr.length);
+  for (let i = 0; i < rows; i++) {
+    for (const side of ['dr', 'cr']) {
+      const line = q[side][i]; if (!line) continue;
+      for (const f of ['acc', 'amt']) {
+        if (typeof line[f] === 'object') { bmap[`${side}-${i}-${f}`] = blanks.length; blanks.push({ ans: line[f].b, f }); }
+      }
+    }
+  }
+  const pool = [...blanks.map(b => b.ans), ...(q.distractors || [])];
+  // 勘定科目 → 金額の順に並べ、グループ内はシャッフル（親指で探しやすく）
+  const accs = shuffle(pool.filter(t => !isNum(t)));
+  const nums = shuffle(pool.filter(isNum));
+  S.q = q; S.blanks = blanks; S.bmap = bmap;
+  S.parts = [...accs, ...nums].map((t, i) => ({ id: i, text: t }));
+  S.fills = Array(blanks.length).fill(null);
+  S.active = 0; S.answered = false; S.showHint = false; S.result = null;
+  renderQuiz(true);
+}
+
+function nextEmpty(from) {
+  const n = S.fills.length;
+  for (let k = 0; k < n; k++) { const i = (from + k) % n; if (S.fills[i] === null) return i; }
+  return -1;
+}
+
+function cellHtml(q, side, i) {
+  const line = q[side][i];
+  if (!line) return '<div class="jr-cell"></div>';
+  const part = f => {
+    const v = line[f];
+    if (typeof v !== 'object') return `<div class="fx ${f}">${v}</div>`;
+    const b = S.bmap[`${side}-${i}-${f}`];
+    const pid = S.fills[b];
+    const text = pid === null ? '' : S.parts[pid].text;
+    let cls = 'slot ' + f;
+    if (pid === null) cls += ' empty'; else cls += ' filled';
+    if (!S.answered && b === S.active) cls += ' active';
+    if (S.answered) cls += S.result[b] ? ' ok' : ' ng';
+    const slot = `<button class="${cls}" data-act="slot" data-b="${b}" ${S.answered ? 'disabled' : ''}>${text}</button>`;
+    if (S.answered && !S.result[b]) return `<div class="fixwrap ${f}">${slot}<span class="fix">${S.blanks[b].ans}</span></div>`;
+    return slot;
+  };
+  return `<div class="jr-cell">${part('acc')}${part('amt')}</div>`;
+}
+
+function renderQuiz(scrollTop) {
+  const q = S.q;
+  const total = S.ids.length;
+  const rows = Math.max(q.dr.length, q.cr.length);
+  let jr = '';
+  for (let i = 0; i < rows; i++) jr += `<div class="jr-row">${cellHtml(q, 'dr', i)}${cellHtml(q, 'cr', i)}</div>`;
+
+  const allFilled = S.fills.every(v => v !== null);
+  const used = new Set(S.fills.filter(v => v !== null));
+  const isLast = S.idx >= total - 1;
+  const partBtn = p => `<button class="part ${isNum(p.text) ? 'num' : ''} ${used.has(p.id) ? 'used' : ''}" data-act="part" data-p="${p.id}" ${used.has(p.id) ? 'disabled' : ''}>${p.text}</button>`;
+
+  let resultHtml = '';
+  if (S.answered) {
+    const ok = S.result.every(Boolean);
+    const wrongN = S.result.filter(r => !r).length;
+    resultHtml = `
+      <div class="verdict ${ok ? 'ok' : 'ng'}">
+        <span style="font-size:24px">${ok ? '◯' : '✕'}</span>
+        <div>${ok ? '正解！仕訳の構造は完璧です' : `不正解（${wrongN}か所）`}
+          <small>${ok ? (S.mode === 'review' ? '復習リストから削除しました' : 'この調子で次へ') : (S.mode === 'review' ? '復習リストに残ります' : '復習リストに登録しました')}</small>
+        </div>
+      </div>
+      <div class="explain"><h3>解説</h3>${q.explain}</div>`;
+  }
+
+  const dock = S.answered
+    ? `<div class="dock"><div class="dock-inner">
+        <button class="btn btn-pri" data-act="next">${isLast ? '結果を見る' : '次の問題へ'}</button>
+      </div></div>`
+    : `<div class="dock"><div class="dock-inner">
+        <div class="dock-label"><span>パーツをタップ → [ ? ] に入ります</span><span>${S.fills.filter(v => v !== null).length}/${S.fills.length}</span></div>
+        <div class="parts">
+          <div class="pgrid">${S.parts.filter(p => !isNum(p.text)).map(partBtn).join('')}</div>
+          <div class="pgrid n">${S.parts.filter(p => isNum(p.text)).map(partBtn).join('')}</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" data-act="clear">リセット</button>
+          <button class="btn btn-pri" data-act="judge" ${allFilled ? '' : 'disabled'}>判定する</button>
+        </div>
+      </div></div>`;
+
+  const prevScroll = scrollTop ? 0 : (document.querySelector('.scroll')?.scrollTop || 0);
+  $app.innerHTML = `
+    <div class="screen">
+      <div class="qbar">
+        <button class="back" data-act="menu">${ICON.back}メニュー</button>
+        <div class="qbar-title">${S.label}</div>
+        <div class="qbar-prog">${S.idx + 1} / ${total}</div>
+      </div>
+      <div class="progress"><i style="width:${((S.idx + (S.answered ? 1 : 0)) / total) * 100}%"></i></div>
+      <div class="scroll"><div class="qwrap">
+        <span class="tag ${S.mode === 'review' ? 'rv' : ''}">${S.mode === 'review' ? '要復習・' : ''}${q.cat}</span>
+        <h2 class="qtitle">${q.title}</h2>
+        <div class="stem">${q.stem}${q.data ? `<div class="data">${q.data}</div>` : ''}</div>
+        ${!S.answered && q.hint ? (S.showHint ? `<div class="hint" style="margin-top:8px">💡 ${q.hint}</div>` : `<button class="hint-btn" data-act="hint">💡 ヒントを見る</button>`) : ''}
+        <div class="jr" id="jr"><div class="jr-head"><span>借方</span><span>貸方</span></div>${jr}</div>
+        ${resultHtml}
+      </div></div>
+      ${dock}
+    </div>`;
+  const sc = document.querySelector('.scroll');
+  if (sc) sc.scrollTop = prevScroll;
+  if (!S.answered && !scrollTop) {
+    const a = document.querySelector('.slot.active');
+    a && a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function judge() {
+  S.result = S.blanks.map((b, i) => S.parts[S.fills[i]].text === b.ans);
+  S.answered = true;
+  const ok = S.result.every(Boolean);
+  const id = S.q.id;
+  let review = getReview();
+  if (ok) {
+    S.score++;
+    const solved = getSolved(); solved[id] = true; store.set(KEY_SOLVED, solved);
+    if (S.mode === 'review') review = review.filter(x => x !== id);
+  } else {
+    if (!review.includes(id)) review.push(id);
+  }
+  setReview(review);
+
+  // 演出
+  const st = document.createElement('div');
+  st.className = 'stamp ' + (ok ? 'ok' : 'ng');
+  st.innerHTML = `<div>${ok ? '◯' : '✕'}</div>`;
+  document.body.appendChild(st);
+  setTimeout(() => st.remove(), 950);
+  buzz(ok ? 40 : [60, 60, 60]);
+
+  renderQuiz(false);
+  if (!ok) document.getElementById('jr')?.classList.add('shake');
+  // 結果エリアへ軽くスクロール
+  setTimeout(() => {
+    const v = document.querySelector('.verdict');
+    v && v.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 400);
+}
+
+function renderDone() {
+  const total = S.ids.length;
+  const remain = getReview().length;
+  $app.innerHTML = `
+    <header class="topbar"><h1>簿記1級仕分けパズル</h1><p>${S.label}</p></header>
+    <main class="wrap"><div class="done">
+      <p>おつかれさまでした</p>
+      <div class="big">${S.score} / ${total}</div>
+      <p>${S.mode === 'review' ? `復習リスト残り：${remain}問` : (S.score === total ? '全問正解！' : '間違えた問題は「要復習モード」に登録されました')}</p>
+      ${remain && S.mode === 'review' ? `<button class="btn btn-ng" data-act="review">もう一度復習する</button>` : ''}
+      <button class="btn btn-pri" data-act="menu">メニューに戻る</button>
+    </div></main>`;
+}
+
+function showModal(title, body) {
+  const m = document.createElement('div');
+  m.className = 'modal-bg';
+  m.innerHTML = `<div class="modal"><div class="ic">${ICON.clock}</div><h3>${title}</h3><p>${body}</p>
+    <button class="btn btn-pri" data-act="close-modal">OK</button></div>`;
+  m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-act="close-modal"]')) m.remove(); });
+  document.body.appendChild(m);
+}
+
+/* ---------- イベント（委譲） ---------- */
+$app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const act = el.dataset.act;
+
+  if (act === 'cat') {
+    const c = el.dataset.cat;
+    const ids = QUESTIONS.filter(q => q.cat === c).map(q => q.id);
+    if (!ids.length) { showModal('問題準備中', `「${c}」の問題は現在準備中です。<br>公開中：資産除去債務・連結会計・標準原価計算`); return; }
+    startSession('cat', ids, c);
+  }
+  else if (act === 'mode') { menuMode = el.dataset.mode; renderMenu(); }
+  else if (act === 'random') { startSession('cat', shuffle(QUESTIONS.map(q => q.id)), '全範囲からランダム'); }
+  else if (act === 'review-cat') {
+    const ids = getReview().filter(id => qById(id).cat === el.dataset.cat);
+    if (ids.length) startSession('review', ids, '要復習：' + el.dataset.cat);
+  }
+  else if (act === 'review') {
+    const ids = getReview();
+    if (ids.length) startSession('review', shuffle(ids), '要復習モード');
+  }
+  else if (act === 'menu') { renderMenu(); window.scrollTo(0, 0); }
+  else if (act === 'part') {
+    if (S.answered) return;
+    let t = S.fills[S.active] === null ? S.active : nextEmpty(S.active);
+    if (t < 0) return;
+    S.fills[t] = +el.dataset.p;
+    const n = nextEmpty(t);
+    S.active = n < 0 ? t : n;
+    buzz(8);
+    renderQuiz(false);
+  }
+  else if (act === 'slot') {
+    if (S.answered) return;
+    const b = +el.dataset.b;
+    if (S.fills[b] !== null) S.fills[b] = null; // タップで取り外し
+    S.active = b;
+    renderQuiz(false);
+  }
+  else if (act === 'clear') { S.fills = S.fills.map(() => null); S.active = 0; renderQuiz(false); }
+  else if (act === 'hint') { S.showHint = true; renderQuiz(false); }
+  else if (act === 'judge') { if (S.fills.every(v => v !== null)) judge(); }
+  else if (act === 'next') {
+    if (S.idx < S.ids.length - 1) { S.idx++; loadQuestion(); } else renderDone();
+  }
+});
+
+// ダブルタップ拡大の抑止（揺れる車内での誤操作対策）
+let lastTouch = 0;
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouch < 300) e.preventDefault(); lastTouch = now; }, { passive: false });
+
+renderMenu();
+</script>
+</body>
+</html>
